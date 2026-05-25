@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: cartcloser-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: cartcloser
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # n8n Workflow Engine
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: cartcloser-n8n
+    ports:
+      - "5678:5678"
+    environment:
+      DB_TYPE: postgres
+      DB_POSTGRE_HOST: postgres
+      DB_POSTGRE_PORT: 5432
+      DB_POSTGRE_USER: postgres
+      DB_POSTGRE_PASSWORD: postgres
+      DB_POSTGRE_DATABASE: n8n
+      N8N_BASIC_AUTH_ACTIVE: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+  # NestJS Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cartcloser-api
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: cartcloser
+      N8N_WEBHOOK_BASE_URL: http://n8n:5678
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/src
+    command: npm run start:dev
+
+  # Redis (optional, for caching/sessions)
+  redis:
+    image: redis:7-alpine
+    container_name: cartcloser-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
+  n8n_data:
+
+networks:
+  default:
+    name: cartcloser-network

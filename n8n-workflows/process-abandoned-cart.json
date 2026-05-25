@@ -1,0 +1,92 @@
+{
+  "name": "Process Abandoned Cart",
+  "description": "Receives abandoned cart, gets merchant config, prepares message, sends WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "process-abandoned-cart",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://backend:3000/merchants/{{ $json.merchantId }}/config",
+        "authentication": "none",
+        "options": {}
+      },
+      "name": "Get Merchant Config",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "expression": "={\n  merchantId: $json.merchantId,\n  cartId: $json.cartId,\n  customerPhone: $json.customerPhone,\n  customerEmail: $json.customerEmail,\n  cartTotal: $json.cartTotal,\n  messageTemplate: $json.messageTemplate,\n  discountPercent: $json.defaultDiscountPercent,\n  whatsappPhoneNumber: $json.whatsappPhoneNumber,\n  checkoutUrl: $json.checkoutUrl\n}"
+      },
+      "name": "Merge Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "expression": "={\n  ...items[0],\n  message: items[0].messageTemplate\n    .replace('${cartTotal}', '$' + items[0].cartTotal.toFixed(2))\n    .replace('${discountPercent}', items[0].discountPercent)\n    .replace('${link}', items[0].checkoutUrl)\n}"
+      },
+      "name": "Generate Message",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "from": "=+{{ $json.whatsappPhoneNumber }}",
+        "to": "={{ $json.customerPhone }}",
+        "text": "={{ $json.message }}"
+      },
+      "name": "Send WhatsApp",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 2,
+      "position": [1250, 300],
+      "credentials": {
+        "twilioApi": "twilio_account"
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://backend:3000/carts/{{ $json.cartId }}/message-sent",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": []
+        }
+      },
+      "name": "Log Message Sent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1500, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Get Merchant Config", "branch": 0, "socket": 0 }]]
+    },
+    "Get Merchant Config": {
+      "main": [[{ "node": "Merge Data", "branch": 0, "socket": 0 }]]
+    },
+    "Merge Data": {
+      "main": [[{ "node": "Generate Message", "branch": 0, "socket": 0 }]]
+    },
+    "Generate Message": {
+      "main": [[{ "node": "Send WhatsApp", "branch": 0, "socket": 0 }]]
+    },
+    "Send WhatsApp": {
+      "main": [[{ "node": "Log Message Sent", "branch": 0, "socket": 0 }]]
+    }
+  }
+}
