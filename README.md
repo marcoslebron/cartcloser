@@ -4,13 +4,13 @@ Automatically recover abandoned shopping carts by sending personalized WhatsApp 
 
 ## Features
 
-✅ **Abandoned Cart Detection** - Real-time webhook from Shopify
-✅ **WhatsApp Integration** - Send messages directly via Twilio
-✅ **Dynamic Discounts** - Customizable per merchant
-✅ **Multi-tenant** - Support unlimited Shopify stores
-✅ **Analytics** - Track recovery rates and revenue
-✅ **Automatic Workflows** - n8n orchestration
-✅ **Scalable Architecture** - NestJS + PostgreSQL
+- ✅ **Abandoned Cart Detection** - Real-time webhook from Shopify 
+- ✅ **WhatsApp Integration** - Send messages directly via Twilio 
+- ✅ **Dynamic Discounts** - Customizable per merchant
+- ✅ **Multi-tenant** - Support unlimited Shopify stores
+- ✅ **Analytics** - Track recovery rates and revenue
+- ✅ **Automatic Workflows** - n8n orchestration
+- ✅ **Scalable Architecture** - NestJS + PostgreSQL
 
 ## Tech Stack
 
@@ -223,22 +223,6 @@ defaultDiscountPercent: 15  # Each merchant can set their own
 ```
 
 ## Deployment
-
-### Heroku
-
-```bash
-heroku create cartcloser-api
-heroku addons:create heroku-postgresql:standard-0
-heroku config:set N8N_WEBHOOK_BASE_URL=https://cartcloser-n8n.herokuapp.com
-git push heroku main
-```
-
-### AWS / Digital Ocean
-
-Use Docker Compose and deploy to:
-- EC2 / Droplet
-- ECS
-- Kubernetes
 
 ### Environment Variables
 
