@@ -74,7 +74,7 @@ export class CartsService {
       {
         status: 'recovered',
         recoveredAt: new Date(),
-        recoveredAmount: recoveredAmount || null,
+        recoveredAmount: recoveredAmount ?? undefined,
       },
     );
   }
