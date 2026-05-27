@@ -1,19 +1,23 @@
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS for n8n and frontend
-  app.enableCors({
-    origin: [
-      'http://localhost:3001',
-      'http://localhost:5678',
-      'http://n8n:5678',
-      process.env.FRONTEND_URL,
-    ],
-    credentials: true,
-  });
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+
+  const allowedOrigins = [
+    'http://localhost:3001',
+    'http://localhost:5678',
+    'http://n8n:5678',
+  ];
+
+  if (process.env.FRONTEND_URL) {
+    allowedOrigins.push(process.env.FRONTEND_URL);
+  }
+
+  app.enableCors({ origin: allowedOrigins, credentials: true });
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
