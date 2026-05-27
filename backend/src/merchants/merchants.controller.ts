@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Body, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Body, Req, UseGuards } from '@nestjs/common';
 import { MerchantsService } from './merchants.service';
 import { UpdateMerchantDto } from './dto/update-merchant.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -21,8 +21,8 @@ export class MerchantsController {
   }
 
   @UseGuards(ApiKeyGuard)
-  @Get(':merchantId/config')
-  async getConfig(@Param('merchantId') merchantId: string) {
-    return this.merchantsService.getMerchantConfig(merchantId);
+  @Get('config')
+  async getConfig(@Req() req: any) {
+    return this.merchantsService.getMerchantConfig(req.merchant.id);
   }
 }
