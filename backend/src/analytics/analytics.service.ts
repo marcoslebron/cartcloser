@@ -4,6 +4,39 @@ import { Repository } from 'typeorm';
 import { Cart } from '../carts/carts.entity';
 import { MessagesService } from '../messages/messages.service';
 
+interface DashboardResult {
+  summary: {
+    totalAbandoned: number;
+    totalContacted: number;
+    totalRecovered: number;
+    recoveryRate: number;
+    totalRecoveredRevenue: number;
+    totalAbandonedRevenue: number;
+  };
+  messages: {
+    sent: number;
+    delivered: number;
+    read: number;
+    failed: number;
+  };
+  dailyBreakdown: Array<{
+    date: string | null;
+    abandoned: number;
+    recovered: number;
+    recoveredRevenue: number;
+  }>;
+  revenueTrend: Array<{
+    date: string | null;
+    recoveredRevenue: number;
+  }>;
+  topCustomers: Array<{
+    customerEmail: string;
+    customerName: string;
+    cartTotal: number;
+    status: string;
+  }>;
+}
+
 @Injectable()
 export class AnalyticsService {
   constructor(
@@ -12,7 +45,7 @@ export class AnalyticsService {
     private messagesService: MessagesService,
   ) {}
 
-  async getDashboard(merchantId: string) {
+  async getDashboard(merchantId: string): Promise<DashboardResult> {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     const [totalAbandoned, totalContacted, totalRecovered] = await Promise.all([
@@ -49,6 +82,7 @@ export class AnalyticsService {
         'recoveredRevenue',
       )
       .where('cart.merchantId = :merchantId', { merchantId })
+      .andWhere('cart.abandonedAt IS NOT NULL')
       .andWhere('cart.abandonedAt >= :since', { since: thirtyDaysAgo })
       .groupBy("DATE_TRUNC('day', cart.abandonedAt)")
       .orderBy("DATE_TRUNC('day', cart.abandonedAt)", 'ASC')
