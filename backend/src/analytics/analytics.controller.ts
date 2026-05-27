@@ -1,5 +1,5 @@
 import { Controller, Get, Req, UseGuards } from '@nestjs/common';
-import { AnalyticsService } from './analytics.service';
+import { AnalyticsService, DashboardResult } from './analytics.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('analytics')
@@ -8,7 +8,7 @@ export class AnalyticsController {
 
   @UseGuards(JwtAuthGuard)
   @Get('dashboard')
-  async getDashboard(@Req() req: any): Promise<any> {
+  async getDashboard(@Req() req: any): Promise<DashboardResult> {
     return this.analyticsService.getDashboard(req.user.merchantId);
   }
 }

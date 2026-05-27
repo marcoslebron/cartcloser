@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Cart } from '../carts/carts.entity';
 import { MessagesService } from '../messages/messages.service';
 
-interface DashboardResult {
+export interface DashboardResult {
   summary: {
     totalAbandoned: number;
     totalContacted: number;
