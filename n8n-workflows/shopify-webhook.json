@@ -1,0 +1,67 @@
+{
+  "name": "Shopify Abandoned Checkout",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "carts/webhook/abandoned-checkout",
+        "responseMode": "responseNode",
+        "authentication": "none"
+      },
+      "name": "Webhook Shopify",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://localhost:3000/carts/webhook/abandoned-checkout",
+        "authentication": "none",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "customer",
+              "value": "={{ $json.customer }}"
+            },
+            {
+              "name": "line_items",
+              "value": "={{ $json.line_items }}"
+            },
+            {
+              "name": "total_price",
+              "value": "={{ $json.total_price }}"
+            }
+          ]
+        }
+      },
+      "name": "Save to Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {},
+      "name": "Trigger Next Workflow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [750, 300],
+      "parameters": {
+        "workflowId": "2"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Shopify": {
+      "main": [[{ "node": "Save to Backend", "branch": 0, "socket": 0 }]]
+    },
+    "Save to Backend": {
+      "main": [[{ "node": "Trigger Next Workflow", "branch": 0, "socket": 0 }]]
+    }
+  }
+}

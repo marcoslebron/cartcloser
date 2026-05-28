@@ -14,68 +14,68 @@ import { Merchant } from '../merchants/merchants.entity';
 @Index(['status', 'abandonedAt'])
 export class Cart {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column()
-  merchantId: string;
+  merchantId!: string;
 
   @ManyToOne(() => Merchant, (merchant) => merchant.carts, {
     onDelete: 'CASCADE',
   })
-  merchant: Merchant;
+  merchant!: Merchant;
 
   @Column()
-  shopifyCheckoutId: string;
+  shopifyCheckoutId!: string;
 
   @Column()
-  customerEmail: string;
+  customerEmail!: string;
 
   @Column({ nullable: true })
-  customerPhone: string;
+  customerPhone!: string;
 
   @Column({ nullable: true })
-  customerName: string;
+  customerName!: string;
 
   @Column('decimal', { precision: 10, scale: 2 })
-  cartTotal: number;
+  cartTotal!: number;
 
   @Column('simple-json', { nullable: true })
-  cartItems: Array<{
+  cartItems!: Array<{
     title: string;
     quantity: number;
     price: string;
   }>;
 
   @Column('text', { nullable: true })
-  checkoutUrl: string;
+  checkoutUrl!: string;
 
   @Column({ default: 'abandoned' })
-  status: string; // 'abandoned', 'contacted', 'recovered', 'expired'
+  status!: string; // 'abandoned', 'contacted', 'recovered', 'expired'
 
   @Column({ nullable: true })
-  discountCode: string;
+  discountCode!: string;
 
   @Column({ default: 0 })
-  discountPercent: number;
+  discountPercent!: number;
 
   @Column({ default: 0 })
-  messagesSent: number;
+  messagesSent!: number;
 
   @Column({ nullable: true })
-  lastMessageSentAt: Date;
+  lastMessageSentAt!: Date;
 
   @Column({ nullable: true })
-  recoveredAt: Date;
+  recoveredAt!: Date;
 
   @Column({ nullable: true })
-  recoveredAmount: number;
+  recoveredAmount!: number;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @Column({ nullable: true })
-  abandonedAt: Date;
+  abandonedAt!: Date;
 
   @Column({ nullable: true })
-  expiresAt: Date; // 30 days after abandoned
+  expiresAt!: Date; // 30 days after abandoned
 }

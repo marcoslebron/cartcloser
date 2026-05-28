@@ -16,43 +16,43 @@ import { Cart } from '../carts/carts.entity';
 @Index(['sentAt'])
 export class Message {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column()
-  merchantId: string;
+  merchantId!: string;
 
   @ManyToOne(() => Merchant, (merchant) => merchant.messages, {
     onDelete: 'CASCADE',
   })
-  merchant: Merchant;
+  merchant!: Merchant;
 
   @Column()
-  cartId: string;
+  cartId!: string;
 
   @ManyToOne(() => Cart, { onDelete: 'CASCADE' })
-  cart: Cart;
+  cart!: Cart;
 
   @Column()
-  phoneNumber: string;
+  phoneNumber!: string;
 
   @Column('text')
-  messageText: string;
+  messageText!: string;
 
   @Column({ default: 'pending' })
-  status: string; // 'pending', 'sent', 'delivered', 'read', 'failed'
+  status!: string; // 'pending', 'sent', 'delivered', 'read', 'failed'
 
   @Column({ nullable: true })
-  twilioMessageSid: string;
+  twilioMessageSid!: string;
 
   @Column({ nullable: true })
-  errorMessage: string;
+  errorMessage!: string;
 
   @Column({ nullable: true })
-  retryCount: number;
+  retryCount!: number;
 
   @CreateDateColumn()
-  sentAt: Date;
+  sentAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

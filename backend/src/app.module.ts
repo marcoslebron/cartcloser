@@ -6,6 +6,7 @@ import { CartsModule } from './carts/carts.module';
 import { MessagesModule } from './messages/messages.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { MerchantsModule } from './merchants/merchants.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { MerchantsModule } from './merchants/merchants.module';
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT) || 5432,
+      port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 5432,
       username: process.env.DB_USER || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_NAME || 'cartcloser',
@@ -29,6 +30,7 @@ import { MerchantsModule } from './merchants/merchants.module';
     CartsModule,
     MessagesModule,
     AnalyticsModule,
+    HealthModule,
   ],
   controllers: [],
   providers: [],

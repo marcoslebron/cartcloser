@@ -5,53 +5,53 @@ import { Message } from '../messages/messages.entity';
 @Entity('merchants')
 export class Merchant {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ unique: true })
-  shopifyStoreName: string; // mystore.myshopify.com
+  shopifyStoreName!: string; // mystore.myshopify.com
 
   @Column({ type: 'text', select: false })
-  shopifyAccessToken: string; // Encrypted in production
+  shopifyAccessToken!: string; // Encrypted in production
 
   @Column()
-  whatsappPhoneNumber: string; // +1234567890
+  whatsappPhoneNumber!: string; // +1234567890
 
   @Column({ nullable: true })
-  whatsappPhoneNumberId: string;
+  whatsappPhoneNumberId!: string;
 
   @Column({ unique: true })
-  apiKey: string; // For API authentication
+  apiKey!: string; // For API authentication
 
   @Column({ type: 'text', select: false })
-  apiSecret: string; // Encrypted in production
+  apiSecret!: string; // Encrypted in production
 
   @Column({
     type: 'text',
     default: 'Hola! 👋 Dejaste ${cartTotal} en tu carrito. Completa tu compra ahora con 15% OFF. ${link}',
   })
-  messageTemplate: string;
+  messageTemplate!: string;
 
   @Column({ type: 'int', default: 15 })
-  defaultDiscountPercent: number;
+  defaultDiscountPercent!: number;
 
   @Column({ type: 'varchar', length: 50, default: 'abandoned' })
-  webhookStatus: string; // 'installed', 'abandoned', 'inactive'
+  webhookStatus!: string; // 'installed', 'abandoned', 'inactive'
 
   @Column({ default: true })
-  isActive: boolean;
+  isActive!: boolean;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   // Relations
   @OneToMany(() => Cart, (cart) => cart.merchant, { cascade: true })
-  carts: Cart[];
+  carts!: Cart[];
 
   @OneToMany(() => Message, (message) => message.merchant, { cascade: true })
-  messages: Message[];
+  messages!: Message[];
 
   // Helper: Get stats summary
   async getQuickStats() {
