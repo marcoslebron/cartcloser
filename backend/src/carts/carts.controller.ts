@@ -1,6 +1,7 @@
-import { Controller, Post, Body, Param, Headers, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Headers, HttpException, HttpStatus, UseGuards, Req } from '@nestjs/common';
 import { CartsService } from './carts.service';
 import { MerchantsService } from '../merchants/merchants.service';
+import { ApiKeyGuard } from '../merchants/guards/api-key.guard';
 import * as crypto from 'crypto';
 
 @Controller('webhooks')
@@ -31,7 +32,7 @@ export class WebhooksController {
     // Validate webhook signature
     const payload = JSON.stringify(webhookData);
     const hash = crypto
-      .createHmac('sha256', merchant.shopifyAccessToken)
+      .createHmac('sha256', process.env.SHOPIFY_API_SECRET || '')
       .update(payload, 'utf8')
       .digest('base64');
 
@@ -97,5 +98,30 @@ export class WebhooksController {
       console.error('[N8N ERROR]', error);
       // Don't throw - webhook already processed
     }
+  }
+}
+
+@UseGuards(ApiKeyGuard)
+@Controller('carts')
+export class CartsController {
+  constructor(private cartsService: CartsService) {}
+
+  @Get(':id')
+  async getCart(@Param('id') id: string) {
+    const cart = await this.cartsService.getCart(id);
+    if (!cart) throw new HttpException('Cart not found', HttpStatus.NOT_FOUND);
+    return cart;
+  }
+
+  @Post(':id/message-sent')
+  async messageSent(@Param('id') id: string) {
+    await this.cartsService.markMessageSent(id);
+    return { success: true };
+  }
+
+  @Post(':id/recovered')
+  async recovered(@Param('id') id: string, @Body() body: { amount?: number }) {
+    await this.cartsService.markRecovered(id, body?.amount);
+    return { success: true };
   }
 }

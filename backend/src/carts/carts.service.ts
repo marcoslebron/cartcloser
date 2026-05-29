@@ -59,6 +59,7 @@ export class CartsService {
     return this.cartsRepository.update(
       { id: cartId },
       {
+        status: 'contacted',
         messagesSent: () => 'messagesSent + 1',
         lastMessageSentAt: new Date(),
       },

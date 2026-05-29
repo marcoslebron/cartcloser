@@ -57,7 +57,8 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ./backend/src:/app/src
+      - ./backend:/app             # 1. Mounts the entire backend root, so Nest sees all configs and source files
+      - /app/node_modules          # 2. Crucial: Prevents your local node_modules from overwriting the Alpine Linux modules
     command: npm run start:dev
 
   # Redis (optional, for caching/sessions)
