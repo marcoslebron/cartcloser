@@ -5,6 +5,8 @@ import {
   Res,
   BadRequestException,
   ForbiddenException,
+  BadGatewayException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ShopifyService } from './shopify.service';
@@ -30,21 +32,32 @@ export class ShopifyController {
   ) {
     const { shop, code, state } = query;
 
-    if (!this.shopifyService.validateNonce(state)) {
-      throw new BadRequestException('Invalid or expired state');
-    }
-
     if (!this.shopifyService.validateCallbackHmac(query)) {
       throw new ForbiddenException('Invalid HMAC signature');
     }
 
-    const accessToken = await this.shopifyService.exchangeToken(shop, code);
-    const { merchantId, jwt } = await this.shopifyService.upsertMerchant(shop, accessToken);
-    await this.shopifyService.registerWebhook(shop, accessToken, merchantId);
+    if (!this.shopifyService.validateNonce(state)) {
+      throw new BadRequestException('Invalid or expired state');
+    }
 
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
-    return res.redirect(
-      `${frontendUrl}/install/success?token=${jwt}&merchantId=${merchantId}`,
-    );
+    try {
+      const accessToken = await this.shopifyService.exchangeToken(shop, code);
+      const { merchantId, jwt } = await this.shopifyService.upsertMerchant(shop, accessToken);
+      await this.shopifyService.registerWebhook(shop, accessToken, merchantId);
+
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+      return res.redirect(
+        `${frontendUrl}/install/success?token=${jwt}&merchantId=${merchantId}`,
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'OAuth install failed';
+      if (message.includes('Token exchange failed')) {
+        throw new BadGatewayException('Failed to obtain Shopify access token');
+      }
+      if (message.includes('Webhook registration failed')) {
+        throw new BadGatewayException('Shopify install succeeded but webhook registration failed — please retry');
+      }
+      throw new InternalServerErrorException('OAuth install failed');
+    }
   }
 }
