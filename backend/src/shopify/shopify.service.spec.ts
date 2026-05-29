@@ -1,21 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ShopifyService } from './shopify.service';
-import { JwtService } from '@nestjs/jwt';
-import { getDataSourceToken } from '@nestjs/typeorm';
-
-const mockDataSource = { transaction: jest.fn() };
-const mockJwtService = { sign: jest.fn().mockReturnValue('mock-jwt') };
 
 describe('ShopifyService — nonce', () => {
   let service: ShopifyService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ShopifyService,
-        { provide: JwtService, useValue: mockJwtService },
-        { provide: getDataSourceToken(), useValue: mockDataSource },
-      ],
+      providers: [ShopifyService],
     }).compile();
     service = module.get<ShopifyService>(ShopifyService);
   });
