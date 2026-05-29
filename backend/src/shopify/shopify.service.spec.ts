@@ -44,5 +44,6 @@ describe('ShopifyService — nonce', () => {
     expect(url).toContain('client_id=testkey');
     expect(url).toContain('state=abc123');
     expect(url).toContain('read_checkouts');
+    expect(url).toContain('read_customers');
   });
 });

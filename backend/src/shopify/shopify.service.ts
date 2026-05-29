@@ -1,23 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
 import { randomBytes } from 'crypto';
-import * as crypto from 'crypto';
-import * as bcrypt from 'bcrypt';
-import { randomUUID } from 'crypto';
-import { Merchant } from '../merchants/merchants.entity';
-import { User } from '../users/user.entity';
 
 @Injectable()
 export class ShopifyService {
   private nonceStore = new Map<string, number>(); // nonce -> expiry ms
   private readonly NONCE_TTL = 10 * 60 * 1000; // 10 minutes
 
-  constructor(
-    @InjectDataSource() private dataSource: DataSource,
-    private jwtService: JwtService,
-  ) {}
+  constructor() {}
 
   generateNonce(): string {
     const nonce = randomBytes(16).toString('hex');
