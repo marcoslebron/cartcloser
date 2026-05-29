@@ -1,13 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ShopifyService } from './shopify.service';
 import * as crypto from 'crypto';
+import { JwtService } from '@nestjs/jwt';
+import { getDataSourceToken } from '@nestjs/typeorm';
+
+// Shared mocks for upsertMerchant tests
+const mockDataSource = { transaction: jest.fn() };
+const mockJwtService = { sign: jest.fn().mockReturnValue('mock-jwt') };
 
 describe('ShopifyService — nonce', () => {
   let service: ShopifyService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ShopifyService],
+      providers: [
+        ShopifyService,
+        { provide: JwtService, useValue: mockJwtService },
+        { provide: getDataSourceToken(), useValue: mockDataSource },
+      ],
     }).compile();
     service = module.get<ShopifyService>(ShopifyService);
   });
@@ -59,7 +69,11 @@ describe('ShopifyService — HMAC validation', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ShopifyService],
+      providers: [
+        ShopifyService,
+        { provide: JwtService, useValue: mockJwtService },
+        { provide: getDataSourceToken(), useValue: mockDataSource },
+      ],
     }).compile();
     service = module.get<ShopifyService>(ShopifyService);
     process.env.SHOPIFY_API_SECRET = 'testsecret';
@@ -96,7 +110,11 @@ describe('ShopifyService — Shopify API calls', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ShopifyService],
+      providers: [
+        ShopifyService,
+        { provide: JwtService, useValue: mockJwtService },
+        { provide: getDataSourceToken(), useValue: mockDataSource },
+      ],
     }).compile();
     service = module.get<ShopifyService>(ShopifyService);
     process.env.SHOPIFY_API_KEY = 'testkey';
@@ -159,5 +177,116 @@ describe('ShopifyService — Shopify API calls', () => {
     await expect(
       service.registerWebhook('mystore.myshopify.com', 'shpat_abc', 'merchant-uuid'),
     ).rejects.toThrow('Webhook registration failed');
+  });
+});
+
+describe('ShopifyService — upsertMerchant', () => {
+  let service: ShopifyService;
+  let mockManager: any;
+
+  beforeEach(async () => {
+    const merchantRepo = {
+      findOne: jest.fn(),
+      create: jest.fn(),
+      save: jest.fn(),
+    };
+    const userRepo = {
+      findOne: jest.fn(),
+      create: jest.fn(),
+      save: jest.fn(),
+    };
+
+    mockManager = {
+      getRepository: jest.fn((entity) => {
+        if (entity.name === 'Merchant') return merchantRepo;
+        return userRepo;
+      }),
+    };
+
+    mockDataSource.transaction.mockImplementation((cb: any) => cb(mockManager));
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ShopifyService,
+        { provide: JwtService, useValue: mockJwtService },
+        { provide: getDataSourceToken(), useValue: mockDataSource },
+      ],
+    }).compile();
+    service = module.get<ShopifyService>(ShopifyService);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('updates token for existing merchant and returns jwt', async () => {
+    const merchantRepo = mockManager.getRepository({ name: 'Merchant' });
+    const userRepo = mockManager.getRepository({ name: 'User' });
+
+    merchantRepo.findOne.mockResolvedValue({
+      id: 'merch-uuid',
+      shopifyAccessToken: 'old-token',
+      webhookStatus: 'abandoned',
+    });
+    merchantRepo.save.mockResolvedValue({ id: 'merch-uuid' });
+    userRepo.findOne.mockResolvedValue({
+      id: 'user-uuid',
+      email: 'admin@existing.myshopify.com',
+      merchantId: 'merch-uuid',
+      role: 'owner',
+    });
+
+    const result = await service.upsertMerchant('existing.myshopify.com', 'new-token');
+
+    expect(merchantRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({ shopifyAccessToken: 'new-token', webhookStatus: 'installed' }),
+    );
+    expect(result.merchantId).toBe('merch-uuid');
+    expect(result.jwt).toBe('mock-jwt');
+  });
+
+  it('creates merchant + user for new install', async () => {
+    const merchantRepo = mockManager.getRepository({ name: 'Merchant' });
+    const userRepo = mockManager.getRepository({ name: 'User' });
+
+    merchantRepo.findOne.mockResolvedValue(null);
+    merchantRepo.create.mockReturnValue({ shopifyStoreName: 'new.myshopify.com' });
+    merchantRepo.save.mockResolvedValue({ id: 'new-merch-uuid' });
+    userRepo.create.mockReturnValue({ email: 'admin@new.myshopify.com' });
+    userRepo.save.mockResolvedValue({});
+    userRepo.findOne.mockResolvedValue({
+      id: 'new-user-uuid',
+      email: 'admin@new.myshopify.com',
+      merchantId: 'new-merch-uuid',
+      role: 'owner',
+    });
+
+    const result = await service.upsertMerchant('new.myshopify.com', 'shpat_new');
+
+    expect(merchantRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        shopifyStoreName: 'new.myshopify.com',
+        shopifyAccessToken: 'shpat_new',
+        whatsappPhoneNumber: '',
+        isActive: true,
+        webhookStatus: 'installed',
+      }),
+    );
+    expect(userRepo.create).toHaveBeenCalled();
+    expect(result.merchantId).toBe('new-merch-uuid');
+    expect(result.jwt).toBe('mock-jwt');
+  });
+
+  it('throws if no user found after upsert', async () => {
+    const merchantRepo = mockManager.getRepository({ name: 'Merchant' });
+    const userRepo = mockManager.getRepository({ name: 'User' });
+
+    merchantRepo.findOne.mockResolvedValue({ id: 'merch-uuid', shopifyAccessToken: 'tok' });
+    merchantRepo.save.mockResolvedValue({ id: 'merch-uuid' });
+    userRepo.findOne.mockResolvedValue(null); // no user found
+
+    await expect(
+      service.upsertMerchant('broken.myshopify.com', 'token'),
+    ).rejects.toThrow();
   });
 });
