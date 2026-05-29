@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { randomBytes, randomUUID } from 'crypto';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { Merchant } from '../merchants/merchants.entity';
@@ -29,7 +28,7 @@ export class ShopifyService {
 
   generateNonce(): string {
     this.sweepExpiredNonces();
-    const nonce = randomBytes(16).toString('hex');
+    const nonce = crypto.randomBytes(16).toString('hex');
     this.nonceStore.set(nonce, Date.now() + this.NONCE_TTL);
     return nonce;
   }
@@ -140,40 +139,44 @@ export class ShopifyService {
         where: { shopifyStoreName: shop },
       });
 
+      let foundUser: User | null = null;
+
       if (merchant) {
+        // existing merchant - update token
         merchant.shopifyAccessToken = accessToken;
         merchant.webhookStatus = 'installed';
-        await merchantRepo.save(merchant);
+        merchant = await merchantRepo.save(merchant);
+        foundUser = await userRepo.findOne({ where: { merchantId: merchant.id } });
       } else {
+        // new install - create merchant + user
         const created = merchantRepo.create({
           shopifyStoreName: shop,
           shopifyAccessToken: accessToken,
           whatsappPhoneNumber: '',
-          apiKey: randomUUID(),
-          apiSecret: '',
+          apiKey: crypto.randomUUID(),
+          apiSecret: crypto.randomUUID(),
           isActive: true,
           webhookStatus: 'installed',
         });
         merchant = await merchantRepo.save(created);
 
-        const passwordHash = await bcrypt.hash(randomUUID(), 10);
-        const user = userRepo.create({
+        const passwordHash = await bcrypt.hash(crypto.randomUUID(), 10);
+        const newUser = userRepo.create({
           email: `admin@${shop}`,
           passwordHash,
           merchantId: merchant.id,
           role: 'owner',
         });
-        await userRepo.save(user);
+        foundUser = await userRepo.save(newUser);
       }
 
-      const user = await userRepo.findOne({ where: { merchantId: merchant.id } });
-      if (!user) throw new Error(`No user found for merchant ${shop} after upsert`);
+      if (!foundUser) throw new Error(`No user found for merchant ${shop} after upsert`);
 
       const jwt = this.jwtService.sign({
-        sub: user.id,
+        sub: foundUser.id,
         merchantId: merchant.id,
-        email: user.email,
-        role: user.role,
+        email: foundUser.email,
+        role: foundUser.role,
       });
 
       return { merchantId: merchant.id, jwt };

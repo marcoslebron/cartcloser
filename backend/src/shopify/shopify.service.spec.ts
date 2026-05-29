@@ -3,6 +3,7 @@ import { ShopifyService } from './shopify.service';
 import * as crypto from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { getDataSourceToken } from '@nestjs/typeorm';
+import { Merchant } from '../merchants/merchants.entity';
 
 // Shared mocks for upsertMerchant tests
 const mockDataSource = { transaction: jest.fn() };
@@ -198,7 +199,7 @@ describe('ShopifyService — upsertMerchant', () => {
 
     mockManager = {
       getRepository: jest.fn((entity) => {
-        if (entity.name === 'Merchant') return merchantRepo;
+        if (entity === Merchant) return merchantRepo;
         return userRepo;
       }),
     };
@@ -220,8 +221,8 @@ describe('ShopifyService — upsertMerchant', () => {
   });
 
   it('updates token for existing merchant and returns jwt', async () => {
-    const merchantRepo = mockManager.getRepository({ name: 'Merchant' });
-    const userRepo = mockManager.getRepository({ name: 'User' });
+    const merchantRepo = mockManager.getRepository(Merchant);
+    const userRepo = mockManager.getRepository({});
 
     merchantRepo.findOne.mockResolvedValue({
       id: 'merch-uuid',
@@ -246,8 +247,8 @@ describe('ShopifyService — upsertMerchant', () => {
   });
 
   it('creates merchant + user for new install', async () => {
-    const merchantRepo = mockManager.getRepository({ name: 'Merchant' });
-    const userRepo = mockManager.getRepository({ name: 'User' });
+    const merchantRepo = mockManager.getRepository(Merchant);
+    const userRepo = mockManager.getRepository({});
 
     merchantRepo.findOne.mockResolvedValue(null);
     merchantRepo.create.mockReturnValue({ shopifyStoreName: 'new.myshopify.com' });
@@ -278,8 +279,8 @@ describe('ShopifyService — upsertMerchant', () => {
   });
 
   it('throws if no user found after upsert', async () => {
-    const merchantRepo = mockManager.getRepository({ name: 'Merchant' });
-    const userRepo = mockManager.getRepository({ name: 'User' });
+    const merchantRepo = mockManager.getRepository(Merchant);
+    const userRepo = mockManager.getRepository({});
 
     merchantRepo.findOne.mockResolvedValue({ id: 'merch-uuid', shopifyAccessToken: 'tok' });
     merchantRepo.save.mockResolvedValue({ id: 'merch-uuid' });
@@ -287,6 +288,6 @@ describe('ShopifyService — upsertMerchant', () => {
 
     await expect(
       service.upsertMerchant('broken.myshopify.com', 'token'),
-    ).rejects.toThrow();
+    ).rejects.toThrow('No user found for merchant');
   });
 });
