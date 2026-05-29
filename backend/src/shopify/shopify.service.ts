@@ -60,7 +60,11 @@ export class ShopifyService {
       .createHmac('sha256', process.env.SHOPIFY_API_SECRET || '')
       .update(message)
       .digest('hex');
-    return digest === hmac;
+    try {
+      return crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(hmac ?? ''));
+    } catch {
+      return false;
+    }
   }
 
   async exchangeToken(shop: string, code: string): Promise<string> {
