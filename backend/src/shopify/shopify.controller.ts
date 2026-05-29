@@ -43,7 +43,15 @@ export class ShopifyController {
     try {
       const accessToken = await this.shopifyService.exchangeToken(shop, code);
       const { merchantId, jwt } = await this.shopifyService.upsertMerchant(shop, accessToken);
-      await this.shopifyService.registerWebhook(shop, accessToken, merchantId);
+
+      // Register webhook — failure is non-fatal; merchant can retry from settings
+      try {
+        await this.shopifyService.registerWebhook(shop, accessToken, merchantId);
+      } catch (webhookErr) {
+        console.error(
+          `[SHOPIFY] Webhook registration failed for ${shop} — merchant will need to retry: ${webhookErr instanceof Error ? webhookErr.message : webhookErr}`,
+        );
+      }
 
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
       return res.redirect(
@@ -53,9 +61,6 @@ export class ShopifyController {
       const message = err instanceof Error ? err.message : 'OAuth install failed';
       if (message.includes('Token exchange failed')) {
         throw new BadGatewayException('Failed to obtain Shopify access token');
-      }
-      if (message.includes('Webhook registration failed')) {
-        throw new BadGatewayException('Shopify install succeeded but webhook registration failed — please retry');
       }
       throw new InternalServerErrorException('OAuth install failed');
     }

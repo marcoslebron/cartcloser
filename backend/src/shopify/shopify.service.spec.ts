@@ -254,7 +254,12 @@ describe('ShopifyService — upsertMerchant', () => {
     merchantRepo.create.mockReturnValue({ shopifyStoreName: 'new.myshopify.com' });
     merchantRepo.save.mockResolvedValue({ id: 'new-merch-uuid' });
     userRepo.create.mockReturnValue({ email: 'admin@new.myshopify.com' });
-    userRepo.save.mockResolvedValue({});
+    userRepo.save.mockResolvedValue({
+      id: 'new-user-uuid',
+      email: 'admin@new.myshopify.com',
+      merchantId: 'new-merch-uuid',
+      role: 'owner',
+    });
     userRepo.findOne.mockResolvedValue({
       id: 'new-user-uuid',
       email: 'admin@new.myshopify.com',
@@ -276,6 +281,12 @@ describe('ShopifyService — upsertMerchant', () => {
     expect(userRepo.create).toHaveBeenCalled();
     expect(result.merchantId).toBe('new-merch-uuid');
     expect(result.jwt).toBe('mock-jwt');
+    expect(mockJwtService.sign).toHaveBeenCalledWith({
+      sub: 'new-user-uuid',
+      merchantId: 'new-merch-uuid',
+      email: 'admin@new.myshopify.com',
+      role: 'owner',
+    });
   });
 
   it('throws if no user found after upsert', async () => {
