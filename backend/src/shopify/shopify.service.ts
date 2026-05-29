@@ -7,6 +7,7 @@ export class ShopifyService {
   private nonceStore = new Map<string, number>(); // nonce -> expiry ms
   private readonly NONCE_TTL = 10 * 60 * 1000; // 10 minutes
   private readonly SCOPES = 'read_checkouts,read_customers';
+  private readonly SHOPIFY_API_VERSION = '2024-01';
 
   private sweepExpiredNonces(): void {
     const now = Date.now();
@@ -51,13 +52,16 @@ export class ShopifyService {
   }
 
   validateCallbackHmac(query: Record<string, string>): boolean {
+    const secret = process.env.SHOPIFY_API_SECRET;
+    if (!secret) throw new Error('SHOPIFY_API_SECRET is not configured');
+
     const { hmac, ...rest } = query;
     const message = Object.keys(rest)
       .sort()
       .map((k) => `${k}=${rest[k]}`)
       .join('&');
     const digest = crypto
-      .createHmac('sha256', process.env.SHOPIFY_API_SECRET || '')
+      .createHmac('sha256', secret)
       .update(message)
       .digest('hex');
     try {
@@ -79,6 +83,9 @@ export class ShopifyService {
     });
     if (!res.ok) throw new Error(`Token exchange failed: ${res.status}`);
     const data = (await res.json()) as { access_token: string };
+    if (!data.access_token) {
+      throw new Error('Shopify token exchange: missing access_token in response');
+    }
     return data.access_token;
   }
 
@@ -88,7 +95,7 @@ export class ShopifyService {
     merchantId: string,
   ): Promise<void> {
     const res = await fetch(
-      `https://${shop}/admin/api/2024-01/webhooks.json`,
+      `https://${shop}/admin/api/${this.SHOPIFY_API_VERSION}/webhooks.json`,
       {
         method: 'POST',
         headers: {
@@ -105,7 +112,8 @@ export class ShopifyService {
       },
     );
     if (!res.ok) {
-      console.error(`[SHOPIFY] Webhook registration failed: ${res.status}`);
+      const body = await res.text();
+      throw new Error(`Webhook registration failed for ${shop}: ${res.status} — ${body}`);
     }
   }
 }

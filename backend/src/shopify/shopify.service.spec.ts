@@ -108,6 +108,7 @@ describe('ShopifyService — Shopify API calls', () => {
     delete process.env.SHOPIFY_API_KEY;
     delete process.env.SHOPIFY_API_SECRET;
     delete process.env.APP_URL;
+    jest.restoreAllMocks();
   });
 
   it('exchangeToken POSTs to Shopify and returns access_token', async () => {
@@ -131,12 +132,32 @@ describe('ShopifyService — Shopify API calls', () => {
     ).rejects.toThrow('Token exchange failed');
   });
 
-  it('registerWebhook POSTs to Shopify webhooks API', async () => {
+  it('registerWebhook POSTs to Shopify webhooks API with correct body', async () => {
     global.fetch = jest.fn().mockResolvedValue({ ok: true } as any);
     await service.registerWebhook('mystore.myshopify.com', 'shpat_abc', 'merchant-uuid');
     expect(fetch).toHaveBeenCalledWith(
       'https://mystore.myshopify.com/admin/api/2024-01/webhooks.json',
-      expect.objectContaining({ method: 'POST' }),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          webhook: {
+            topic: 'checkouts/create',
+            address: 'https://api.example.com/webhooks/shopify/merchant-uuid',
+            format: 'json',
+          },
+        }),
+      }),
     );
+  });
+
+  it('registerWebhook throws if Shopify returns non-OK', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 422,
+      text: async () => 'Unprocessable Entity',
+    } as any);
+    await expect(
+      service.registerWebhook('mystore.myshopify.com', 'shpat_abc', 'merchant-uuid'),
+    ).rejects.toThrow('Webhook registration failed');
   });
 });
