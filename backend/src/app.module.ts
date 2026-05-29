@@ -7,6 +7,7 @@ import { MessagesModule } from './messages/messages.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { MerchantsModule } from './merchants/merchants.module';
 import { HealthModule } from './health/health.module';
+import { ShopifyModule } from './shopify/shopify.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { HealthModule } from './health/health.module';
     MessagesModule,
     AnalyticsModule,
     HealthModule,
+    ShopifyModule,
   ],
   controllers: [],
   providers: [],
