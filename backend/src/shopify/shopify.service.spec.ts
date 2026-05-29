@@ -37,4 +37,18 @@ describe('ShopifyService — nonce', () => {
     expect(url).toContain('read_checkouts');
     expect(url).toContain('read_customers');
   });
+
+  afterEach(() => {
+    delete process.env.SHOPIFY_API_KEY;
+    delete process.env.APP_URL;
+  });
+
+  it('validateNonce returns false for expired nonce', () => {
+    const realNow = Date.now;
+    Date.now = () => 0; // freeze time at 0 to generate nonce with expiry at TTL ms
+    const nonce = service.generateNonce();
+    Date.now = () => 999_999_999_999; // jump far into the future
+    expect(service.validateNonce(nonce)).toBe(false);
+    Date.now = realNow; // restore
+  });
 });
